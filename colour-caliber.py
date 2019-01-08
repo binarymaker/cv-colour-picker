@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore, uic
 import sys
+import pickle
 
 app = QtWidgets.QApplication([])
 window = uic.loadUi("colour-caliber.ui")
@@ -9,6 +10,13 @@ window = uic.loadUi("colour-caliber.ui")
 pix_x = pix_y = 0
 calib_gain = [1,1,1]
 
+try:
+  file = open('dump.pkl', 'rb')      
+  dict = pickle.load(file) 
+  file.close()
+  calib_gain = dict['gain']
+except:
+  pass
 
 def colour_change():
   global calib_gain
@@ -19,17 +27,28 @@ def colour_change():
   window.label_green.setText(str(calib_gain[1]))
   window.label_red.setText(str(calib_gain[2]))
 
+def reset_calib():
+  global calib_gain
+  calib_gain[0] = 1.0
+  calib_gain[1] = 1.0
+  calib_gain[2] = 1.0
+  window.label_blue.setText(str(calib_gain[0]))
+  window.label_green.setText(str(calib_gain[1]))
+  window.label_red.setText(str(calib_gain[2]))
+  window.slider_blue.setValue(calib_gain[0]*100)
+  window.slider_green.setValue(calib_gain[1]*100)
+  window.slider_red.setValue(calib_gain[2]*100)
 
 window.slider_green.setRange(0,200)
-window.slider_green.setValue(100)
+window.slider_green.setValue(calib_gain[1]*100)
 window.slider_green.valueChanged.connect(colour_change)
 window.slider_blue.setRange(0,200)
-window.slider_blue.setValue(100)
+window.slider_blue.setValue(calib_gain[0]*100)
 window.slider_blue.valueChanged.connect(colour_change)
 window.slider_red.setRange(0,200)
-window.slider_red.setValue(100)
+window.slider_red.setValue(calib_gain[2]*100)
 window.slider_red.valueChanged.connect(colour_change)
-
+window.button_reset.pressed.connect(reset_calib)
 cap = cv2.VideoCapture(0) 
 
 def picker(event,x,y,flags,param):
@@ -71,6 +90,12 @@ while True:
     # cleanup the camera and close any open windows
     cap.release()
     cv2.destroyAllWindows()
+
+    dict = {'gain': calib_gain}
+    file = open('dump.pkl', 'wb')
+    pickle.dump(dict, file)
+    file.close()
+
     break
 print("App closed.")
 #app.exec_()
